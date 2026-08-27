@@ -1,0 +1,31 @@
+Arduino Code 
+(code/automatic_clothes_collector.ino)
+
+#include <Servo.h>
+
+const int rainSensorPin = 2; // Digital pin connected to Rain Drop Sensor DO
+const int servoPin = 9;      // PWM pin connected to Servo Motor signal
+
+Servo clothesServo;
+
+void setup() {
+  pinMode(rainSensorPin, INPUT);
+  clothesServo.attach(servoPin);
+  clothesServo.write(0); // Initial position (clothes outside / under the sun)
+  Serial.begin(9600);
+}
+
+void loop() {
+  int rainDetected = digitalRead(rainSensorPin);
+  
+  // Note: Most digital rain sensors output LOW when water drops are detected
+  if (rainDetected == LOW) {
+    Serial.println("Rain detected! Pulling clothes inside...");
+    clothesServo.write(90); // Rotate servo to pull clothes under shelter
+  } else {
+    Serial.println("Weather is clear. Extending clothes...");
+    clothesServo.write(0);  // Return servo to original position
+  }
+  
+  delay(1000);
+}
