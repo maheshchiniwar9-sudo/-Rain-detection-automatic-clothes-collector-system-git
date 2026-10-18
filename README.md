@@ -1,26 +1,51 @@
-# Rain Detection-Based Automatic Clothes Collector System 🌧️👕
+#include <Servo.h>
 
-An Arduino Uno-powered smart home automation project designed to automatically protect your laundry from sudden rain by retracting or sheltering them using a servo motor mechanism.
+const int rainSensorPin = 2; // Digital pin connected to Rain Drop Sensor DO
+const int servoPin = 9;      // PWM pin connected to Servo Motor signal
 
-## 🛠️ Components Required
-1. Arduino Uno
-2. Arduino Uno Cable (USB)
-3. Rain Drop Sensor Module
-4. Servo Motor (e.g., SG90 or MG995)
-5. Mini Breadboard
-6. Male-to-Male & Male-to-Female Jumper Wires
+Servo clothesServo;
 
-## 🔌 Circuit Connections / Wiring Guide
+// Variables for State Tracking and Debouncing
+bool isRaining = false; 
+bool currentlyRaining = false;
+unsigned long rainStartTime = 0;
+const unsigned long debounceDelay = 3000; // Require 3 seconds of continuous rain to trigger
 
-### Rain Drop Sensor to Arduino Uno:
-* VCC -> Uno 5V
-* GND -> Uno GND
-* DO (Digital Out) -> Uno Digital Pin 2
+void setup() {
+  pinMode(rainSensorPin, INPUT);
+  clothesServo.attach(servoPin);
+  clothesServo.write(0); // Initial position (clothes outside / under the sun)
+  Serial.begin(9600);
+}
 
-### Servo Motor to Arduino Nano:
-* VCC (Red) -> Arduino Nano `5V` 
-* GND (Brown/Black) -> Arduino Nano `GND`
-* Signal (Orange/Yellow) -> Arduino Nano `D9`
-
-## 💻 Arduino Code
-Upload the code located in the `code/` folder using the [Arduino IDE](https://www.arduino.cc/en/software). Make sure to select **Arduino Uno** as your board and the correct processor/COM port.
+void loop() {
+  // Read the sensor (LOW usually means rain is detected)
+  int sensorReading = digitalRead(rainSensorPin);
+  
+  if (sensorReading == LOW) {
+    // If we just detected rain for the first time, start the timer
+    if (!currentlyRaining) {
+      currentlyRaining = true;
+      rainStartTime = millis();
+    }
+    
+    // Check if it has been raining continuously for the debounce delay (3 seconds)
+    if (currentlyRaining && !isRaining && (millis() - rainStartTime >= debounceDelay)) {
+      isRaining = true;
+      Serial.println("Rain confirmed! Pulling clothes inside...");
+      clothesServo.write(90); // Retract clothes
+    }
+  } else {
+    // Weather is clear
+    currentlyRaining = false;
+    
+    // Only move the servo if it was previously raining
+    if (isRaining) {
+      isRaining = false;
+      Serial.println("Weather is clear. Extending clothes...");
+      clothesServo.write(0);  // Extend clothes
+    }
+  }
+  
+  delay(100); // Small delay for stability
+}
